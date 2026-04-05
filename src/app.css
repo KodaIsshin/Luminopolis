@@ -1,0 +1,131 @@
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #f8f6f5;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@font-face {
+  font-family: Sunshine LB;
+  src: url('/assets/fonts/SUNSHINE LB.ttf');
+  font-weight:normal;
+  font-style:normal;
+}
+@font-face{
+  font-family: Tarawera;
+  src: url('/assets/fonts/Tarawera.otf');
+  font-weight:normal;
+  font-style: normal;
+}
+
+@font-face{
+  font-family: FivoSans;
+  src: url('/assets/fonts/FivoSansModern/FivoSansModern-Bold-Oblique.otf');
+  font-weight: bold;
+  font-style: oblique;
+}
+
+@font-face{
+  font-family: FivoSans;
+  src: url('/assets/fonts/FivoSansModern/FivoSansModern-Bold.otf');
+  font-weight: bold;
+  font-style: normal;
+}
+
+@font-face{
+  font-family: Code-New-Roman;
+  src: url('/assets/fonts/code-new-roman/Code New Roman b.otf');
+  font-weight: bold;
+}
+
+@font-face{
+  font-family: OfficeCodePro;
+  src: url('/assets/fonts/Office Code Pro/officecodepro-regular.otf');
+  font-weight: normal;
+}
+@font-face{
+  font-family: OfficeCodePro;
+  src: url('/assets/fonts/Office Code Pro/officecodepro-bold.otf');
+  font-weight: bold;
+}
+
+@font-face{
+    font-family: BagnardSans;
+    src: url('/assets/fonts/BagnardSans.otf');
+    font-weight: normal;
+}
+
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #535bf2;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  height: 100%;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+.card {
+  padding: 2em;
+}
+
+#app {
+  max-width: 1280px;
+  height: 100%;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+button:hover {
+  border-color: #646cff;
+}
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
+}

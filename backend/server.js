@@ -16,6 +16,7 @@ const globalLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false
 })
+
 app.use(globalLimiter);
 
 app.use(express.json());
@@ -23,7 +24,7 @@ app.get('/api/generate-upload-url', generateUploadUrl);
 
 app.get('/api/grab-document', grabDocument);
 
-app.put('/api/save-document', saveDocument);
+app.put('/api/save-document', express.raw({type: 'application/octet-stream', limit: '10mb'}), saveDocument);
 
 app.get('/api/grab_file', loadFilefromR2);
 

@@ -7,7 +7,7 @@
   const {query = {}} = $props();
 
 
-  async function verify_func(email){
+  async function verify_func(){
     const {data: {user}, error} = await supabase.auth.getUser();
     if (error){
         console.error("Error getting user", error.message)

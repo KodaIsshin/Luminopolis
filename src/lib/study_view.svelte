@@ -28,10 +28,8 @@
     }); 
 
 
-
-
-    async function handleFileChange(event){
-        const file = event.target.files[0];
+    async function handleFileChange(){
+        const file = fileInput.files[0];
         if(file){
             const uploadProgress = document.getElementById('uploadProgress');
             uploadProgress.textContent = `Uploading...`;
@@ -126,7 +124,7 @@
                     {:else if materials[index].type === "Panel" && creating}
                         <div class="panel_header">Create Study Material</div>
                         <div id="drop-area" class="drop_area">
-                            <input id="fileInput" class="upload_input" type="file" bind:this={fileInput} onchange={handleFileChange} multiple>
+                            <input id="fileInput" class="upload_input" type="file" bind:this={fileInput} onchange={handleFileChange}>
                             <label class="inputLbl" for="fileInput" id="uploadProgress">Click or Drag & Drop to upload files</label>
                         </div>
                         <button class="cancel_btn" onclick={()=>{
@@ -188,10 +186,12 @@
         margin-left: -5rem;
     }
     .study_view_container{
-        height: 100%;
+        flex: 1;
         width: 100%;
         display: flex;
         flex-direction: row;
+        overflow: hidden;
+        min-height: 0;
     }
 
     .material_header{
@@ -210,11 +210,17 @@
         padding-left: 5px;
         padding-right: 5px;
         flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
     }
 
     .chatroom_section{
         height: 100%;
         width: 50%;
+        overflow: hidden;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
     }
     
     .material_container{
@@ -252,7 +258,7 @@
         border: none;
         border-radius: 10px;
         display: flex;
-        height: 98%;
+        height: 90%;
         width: 95%;
         flex-direction: column;
         border: 2px solid #0000002b;

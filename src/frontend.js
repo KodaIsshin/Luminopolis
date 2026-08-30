@@ -29,6 +29,7 @@ export async function uploadFileToR2(file){
         return {success: true, url: key};
     }catch(error){
         console.error('Error uploading file to R2:', error);
+        //@ts-ignore
         return {success: false, error: error.message};
     }
 }
@@ -39,7 +40,8 @@ export async function loadDocument(channelID){
         const errorData = await res.json();
         throw new Error(`Failed to get document URL: ${errorData.error || res.statusText}`);
     }
-    return await res.json();
+    const buffer = await res.arrayBuffer();
+    return new Uint8Array(buffer);
 }
 
 

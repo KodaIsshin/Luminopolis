@@ -13,12 +13,14 @@
     import { Link, Bold, SquareCode, List, TextQuote, Undo, Redo, Minus, ListOrdered, Highlighter, TabletSmartphone, TruckElectric} from '@lucide/svelte';
     import cpp from 'highlight.js/lib/languages/cpp';
     import html from 'highlight.js/lib/languages/xml';
+    import { Diamonds } from 'svelte-loading-spinners';
     let {id, homeroom} = $props();
     let element = $state();
     let editorState = $state({editor: null});
     let debounceTimeout;
     let lowlight = createLowlight();
     let bootstrapped = $state(false);
+    let loading = $state(true);
     let channel;
     const ydocument = new Y.Doc();
     const docAwareness = new awareness.Awareness(ydocument);
@@ -30,7 +32,6 @@
     
     onMount(async() =>{
         const {data: {user}} = await supabase.auth.getUser();
-        const rand_color = randColor();
         const current_server = id;
         async function collabSetup(){
             channel = supabase.channel(`document_${current_server}`, {
@@ -58,10 +59,14 @@
                 });
             })
             .on('broadcast', {event: 'yjs-update'}, ({payload}) =>{
-                Y.applyUpdate(ydocument, new Uint8Array(payload));
+                Y.applyUpdate(ydocument, new Uint8Array(payload), 'remote');
+                if(!bootstrapped){
+                    bootstrapped = true;
+                }
             })
             .on('broadcast', {event: 'request-sync'}, async ({payload}) =>{
                 const { requesterId } = payload;
+                console.log("Received sync request from", requesterId);
                 if (requesterId === user.id) return;
                 const update = Y.encodeStateAsUpdate(ydocument);
                 bootstrapped = true;
@@ -77,24 +82,31 @@
                         user_name: user.user_metadata.display_name || 'Anonymous'
                     });
                     if (bootstrapped) return;
-                    
-                    if (docUsers.size <= 0) {
+                    const state = channel.presenceState();
+
+                    const othersPresent = Object.keys(state).filter(key => key !== user.id);
+                    if (othersPresent.length === 0) {
                         const documentContent = await loadDocument(homeroom);
-                        
-                        if (documentContent && editorState.editor) {
-                            editorState.editor.commands.setContent(documentContent);
+                        if(documentContent && documentContent.byteLength > 0){
+                            Y.applyUpdate(ydocument, new Uint8Array(documentContent), 'remote');
                             bootstrapped = true;
                         }
                     } else {
                         await channel.send({
                             type: 'broadcast',
                             event: 'request-sync',
-                            payload: { requesterId: user.id }
+                            payload: {
+                                requesterId: user.id,
+                            }
                         });
                     }
+                    loading = false;
                 }
             });
-            yUpdateHandler = update => {
+            yUpdateHandler = (update, origin) => {
+                if(origin === 'remote'){
+                    return;
+                }
                 debounceSave();
                 try{
                     channel?.send({
@@ -106,7 +118,7 @@
                     console.error("Error sending yjs update", error);
                 }
             }
-            ydocument.on('update', yUpdateHandler);
+            ydocument.on('update', (update, origin) => yUpdateHandler(update, origin));
         }
         await collabSetup();
 
@@ -134,7 +146,6 @@
                 docAwareness.setLocalState({
                     user: {
                         user_name: user.user_metadata.display_name || 'Anonymous',
-                        color: rand_color
                     },
                     selection: {
                         anchor: sel.anchor,
@@ -159,71 +170,50 @@
             ydocument.off('update', yUpdateHandler);
             ydocument.destroy();
         }
-
         docAwareness?.setLocalState(null);
         docAwareness?.destroy();
     })
+
 
     function debounceSave(){
         clearTimeout(debounceTimeout);
         try{
             debounceTimeout = setTimeout(async () =>{
-                const update = Y.encodeStateAsUpdate(ydocument);
                 saveDocument()
                 console.log("Document saved");
             }, 500);
         } catch (error){
             console.error("Error in debounce save", error);
         }
-    }
+    }``
 
     function saveDocument(){
         if(!editorState.editor) return;
         try{
+            const update = Y.encodeStateAsUpdate(ydocument);
             fetch(`/api/save-document?channel_id=${encodeURIComponent(homeroom)}`, {
                 method: 'PUT',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/octet-stream',
                 },
-                body: JSON.stringify(editorState.editor.getJSON()),
+                //@ts-ignore
+                body: update.buffer,
             });
         } catch (error){
             console.error("Error saving document", error);
         };
     }
 
-    function randColor(){
-        return '#' + Math.floor(Math.random()*16777215).toString(16);
-    }
-
-    const cursorBuilder = user => {
-        const cursor = document.createElement('span');
-        cursor.classList.add('ProseMirror-yjs-cursor');
-        cursor.setAttribute('style', `border-color: ${user.color}`);
-        const userDiv = document.createElement('div');
-        userDiv.setAttribute('style', `background-color: ${user.color}`);
-        userDiv.appendChild(document.createTextNode(user.user_name));
-        cursor.appendChild(userDiv);
-        return cursor
-    }
-
-    function updateCursors(states){
-        const decorations = [];
-        states.forEach((state) => {
-            if(!state.selection) return;
-            const {anchor, head} = state.selection;
-            const cursorEl = cursorBuilder(state.user);
-            if(anchor === head){
-                decorations.push(Decoration.widget(anchor, cursorBuilder(state.user)));
-            } else {
-                decorations.push(Decoration.inline(Math.min(anchor, head), Math.max(anchor, head), {style: `background-color: ${state.user.color}55`}));
-            }
-        });
-        return DecorationSet.create(editorState.editor.state.doc, decorations);
-    }
 </script>
 
+
+
 <main>
+    {#if loading}
+        <div style="display:flex; justify-content:center; align-items:center; height:100%; width:100%;">
+            <Diamonds size={80} color="#000000" />
+        </div>
+    {/if}
     <div class="doc_container">
         {#if editorState.editor}
             <div class="doc_menu">
@@ -259,18 +249,21 @@
         flex-direction: column;
         border: 1px solid #0000002b;
         margin: auto;
+        display: flex;
+        overflow: hidden;
     }
 
     .doc_menu{
-        min-height: 25px;
+        min-height: 45px;
         width: 100%;
         display: flex;
         gap: 5px;
-        padding: 7px 7px 7px 7px;
+        padding: 7px;
         box-sizing: border-box;
         border-bottom: 1px solid #0000002b;
-        overflow-x: scroll;
         justify-content: center;
+        overflow-x: auto;
+        flex-shrink: 0;
     }
 
     .editor{
@@ -280,8 +273,8 @@
         box-sizing: border-box;
         display: flex;
         align-items: flex-start;
-        overflow-y: scroll;
     }
+
 
     .editor :global(.ProseMirror){
         height: 100%;
@@ -293,11 +286,17 @@
         padding: 15px;
         box-sizing: border-box;
         font-size: 16px;
-        overflow-y: scroll;
         text-align: left;
         line-height: 1.25;
+        overflow-y: scroll;
+        padding-bottom: 250px;
         font-family: OfficeCodePro;
     }
+
+    .editor :global(.ProseMirror)::-webkit-scrollbar {
+        display: none;
+    }
+
 
     .editor :global(pre){
         background: black;

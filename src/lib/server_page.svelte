@@ -15,39 +15,33 @@
     import { onMount } from "svelte";
     import { goto } from "@mateothegreat/svelte5-router";
     onMount(async () => {
-        if(!$user){
-            goto('/')
-            return;
+        if(!$user){ goto('/'); return; }
+        await getCategories();
+        current_category = category_list[0]?.name;
+        category_id = category_list[0]?.id;
+        const {data: channel_data, error} = await supabase.from("channels")
+            .select(`id, name`)
+            .eq("category_id", category_id)
+            .eq("name", "Homeroom")
+            .single();
+        if(channel_data){
+            homeroom_id = channel_data.id;
         }
     });
     $effect(() => {
         const current_server = server_id;
-        const channel = supabase.channel(`server_${current_server}`);
-        async function loadServerData(){
-            await getCategories();
-            current_category = category_list[0]?.name;
-            category_id = category_list[0]?.id;
-            const {data: channel_data, error} = await supabase.from("channels").select(`id, name`).eq("category_id", category_id).eq("name", "Homeroom").single();
-            if (error){
-                console.error("Error getting channel", error.message);
-                return;
-            }
-            homeroom_id = channel_data.id;
-            channel
-            .on('postgres_changes', { schema: 'public', table: 'category', event: '*' }, payload => {
-                updateCategoryList(payload);
-            })
-            .subscribe();
-        }
-
-        loadServerData();
-
+        const channel = supabase.channel(`server_${current_server}`)
+        .on('postgres_changes', { schema: 'public', table: 'category', event: '*' }, payload => {
+            updateCategoryList(payload);
+        })
+        .subscribe();
         return () => {
             if (channel) {
                 supabase.removeChannel(channel);
             }
         }
     });
+    
     function updateCategoryList(payload){
         if(payload.eventType === "INSERT"){
             category_list = [...category_list, {id: payload.new.id, name: payload.new.category_name}];
@@ -64,10 +58,10 @@
     }
     
     function enterCategory(id, category_name){
-        console.log(id);
         category_id = id;
         current_category = category_name;
     }
+
     async function getCategories(){
         const cacheKey = `categories_${server_id}`;
         let cachedCategories = [];
@@ -101,7 +95,6 @@
     }
 
     async function getInvite(){
-        let text = $state("");
         const{data: {user}} = await supabase.auth.getUser()
         const {data: invite_data, error: invite_error} = await supabase.from("invites").select('id').eq('server_id', server_id).maybeSingle();
         if(!invite_data){
@@ -138,9 +131,7 @@
         {:else if current_category == "Document"}
             <DocumentView id = {server_id} homeroom={homeroom_id}/>
         {:else if current_category != "Homeroom"}
-            {#key category_id}
-                <CategoryPage category_id={category_id}/>
-            {/key}
+            <CategoryPage category_id={category_id}/>
         {/if}
         {#if panelVisible}
             <CreateCategory bind:hidden={panelVisible} id={server_id}/>
@@ -169,12 +160,13 @@
 
     .server_sidenav{
         height: 100%;
-        width: 16%;
+        min-width: 200px;
         display: flex;
         flex-direction: column;
         border-right: 1px solid black;
         gap: 15px;
         padding-top: 10px;
+        overflow-y: auto;
     }
     
 
@@ -196,16 +188,17 @@
         border-width: 2px;
         color: black;
         transition: ease-in-out .3s;
-        overflow: auto;
         font-family: FivoSans;
         white-space: nowrap;
     }
+
 
     .button_container{
         display: flex;
         justify-content: center;
         width: 100%;
-        height: 8%;
+        height: 60px;
+        flex-shrink: 0;
         transition: all 0.45s ease;
     }
 

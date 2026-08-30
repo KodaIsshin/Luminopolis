@@ -16,10 +16,8 @@
       return;
     }
     else{
-      const {data: {user: loggedInUser}} = await supabase.auth.getUser();
-      user.set(loggedInUser);
-      const {data: {session: userSession}} = await supabase.auth.getSession();
-      session.set(userSession);
+      user.set(data.user);
+      session.set(data.session);
     }
     goto("/home");
     return;
@@ -29,8 +27,8 @@
 <main>
   <h1 class="login_header">Luminopolis</h1>
   <div class="login_container">
-    <input class="email_input" type="email" bind:value={email} placeholder="Email or Username" />
-    <input class="password_input" type="password" bind:value={password} placeholder="Password" />
+    <input class="email_input" type="email" bind:value={email} placeholder="Email or Username" required/>
+    <input class="password_input" type="password" bind:value={password} placeholder="Password" required/>
     <div class="auth_elements">
       <button class="forgot_password" id="password_retrieval">Forgot Password?</button>
     </div>
@@ -64,6 +62,8 @@
     flex-direction: column;
     height: auto;
     min-width: 325px;
+    width: 30%;
+    align-self: center;
     background: #eeecea;
     padding-left: 20px;
     padding-right: 20px;

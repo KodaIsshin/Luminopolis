@@ -11,13 +11,7 @@ let entered = $state(false);
 let adding = $state(false);
 
 onMount(async () => {
-    const { data: tabs, error } = await supabase
-        .from("channels")
-        .select("*")
-        .eq("category_id", category_id);
-
-    if (!error) category_tabs = tabs;
-
+    await getPages();
     const { data: { session } } = await supabase.auth.getSession();
     await supabase.realtime.setAuth(session.access_token);
 });
@@ -46,6 +40,37 @@ function enterPage(name, id){
     tab_name = name;
     tab_id = id;
     entered = true;
+}
+
+async function getPages(){
+    console.log("using caching techniques")
+    const cacheKey = `categories_${tab_id}`;
+    let cachedPages = [];
+
+    const cached = localStorage.getItem(cacheKey);
+    if(cached){
+        try{
+            cachedPages = JSON.parse(cached);
+            category_tabs = cachedPages;
+        }
+        catch(err){
+            console.error("Error parsing cached category tabs", err);
+        }
+    }
+    const { data: tabs, error } = await supabase.from("channels")
+    .select(`id, name`)
+    .eq("category_id", category_id);
+    if(error){
+        console.error("Error getting pages", error.message);
+        return cachedPages;
+    }
+    const pages = tabs.map(item=> ({id: item.id, name: item.name}));
+    const oldJSON = JSON.stringify(cachedPages);
+    const newJSON = JSON.stringify(pages);
+    if(oldJSON != newJSON){
+        localStorage.setItem(cacheKey, newJSON);
+        category_tabs = pages;
+    }
 }
 
 </script>
@@ -89,6 +114,8 @@ function enterPage(name, id){
         flex-direction: column;
         width: 100%;
         height: 100%;
+        overflow: hidden;
+        box-sizing:border-box
     }
     main button:hover{
         background-color: black;

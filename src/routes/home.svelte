@@ -113,7 +113,6 @@
 <main>
     <div class="sidenav_container {navOpen ? 'closed' : ''}">
         <div class="sidenav">
-            <button class="add_button"onclick={() => panelVisible = !panelVisible}>+</button>
             <button class="home_button" onclick={()=>{ 
             home_state = true 
             toggleNav();
@@ -121,6 +120,7 @@
             {#each info_list as server}
                 <button onclick={() => enterServer(server.name, server.id)}>{server.name}</button>
             {/each}
+            <button class="add_button"onclick={() => panelVisible = !panelVisible}>+</button>
         </div>
         <button class="sidenav_btn" onclick={()=> toggleNav()}>></button>
     </div>
@@ -140,6 +140,11 @@
 </main>
 
 <style>
+main{
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
 
 .sidenav_container{
     position: fixed;
@@ -182,7 +187,6 @@
     padding-top: 10px;
     border-right: 2px solid #0000002b;
     background-color: white;
-    overflow: scroll;
 }
 
 .sidenav button{
@@ -192,7 +196,6 @@
     justify-content: center;
     align-items: center;
     border-radius: 20px;
-    overflow: auto;
     white-space: nowrap;
     align-self: center;
     background-color: white;

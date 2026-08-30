@@ -2,6 +2,7 @@ import {S3Client, PutObjectCommand, GetObjectCommand} from "@aws-sdk/client-s3";
 import {getSignedUrl} from "@aws-sdk/s3-request-presigner";
 import dotenv from 'dotenv';
 import {supabase_backend} from './server.js';
+import * as Y from 'yjs';
 dotenv.config({path: './backend.env'});
 
 const user = null;
@@ -47,15 +48,19 @@ export async function generateUploadUrl(req, res){
 export async function grabDocument(req, res){
     try{
         const channel_id = req.query.channel_id;
-        const key  = `documents/${channel_id}.json`;
+        const key  = `documents/${channel_id}.bin`;
         const {data: existingDoc, error} = await supabase_backend
             .from('study_materials')
             .select('path')
             .eq('channel_id', channel_id)
             .eq('type', 'Document')
             .single();
+
         if(!existingDoc){
-            const emptyDoc = {type: 'doc', content: []};
+            const emptyDoc = new Y.Doc();
+            const emptyState = Y.encodeStateAsUpdate(emptyDoc);
+            emptyDoc.destroy();
+
             const {data, error} = await supabase_backend
                 .from('study_materials')
                 .insert([{channel_id: channel_id, path: key, type: 'Document', name: 'Document'}]);
@@ -66,18 +71,21 @@ export async function grabDocument(req, res){
             await R2.send(new PutObjectCommand({
                 Bucket: BUCKET_NAME,
                 Key: key,
-                Body: JSON.stringify(emptyDoc),
-                ContentType: 'application/json',
+                Body: Buffer.from(emptyState),
+                ContentType: 'application/octet-stream',
             }));
-            return res.status(200).json(emptyDoc);
+            res.setHeader('Content-Type', 'application/octet-stream');
+            return res.send(Buffer.from(emptyState));
         }
         const obj = await R2.send(new GetObjectCommand({
             Bucket: BUCKET_NAME,
             Key: existingDoc.path,
         }));
-        const text = await obj.Body.transformToString();
-        const json = JSON.parse(text);
-        return res.status(200).json(json);
+        const bytes = await obj.Body.transformToByteArray();
+        res.setHeader('Content-Type', 'application/octet-stream');
+        res.setHeader('Content-Length', bytes.length);
+        return res.send(Buffer.from(bytes));
+
     }catch(error){
         console.error('Error grabbing document:', error);
         return res.status(500).json({error: 'Could not grab document'});
@@ -98,18 +106,17 @@ export async function authMiddleware(req, res, next){
 }
 
 export async function saveDocument(req, res){
-    const content = req.body;
     const channel_id = req.query.channel_id;
     if(!channel_id){
         return res.status(400).json({error: 'channel_id is required'});
     }
-    const key = `documents/${channel_id}.json`;
+    const key = `documents/${channel_id}.bin`;
     try{
         await R2.send(new PutObjectCommand({
             Bucket: BUCKET_NAME,
             Key: key,
-            Body: JSON.stringify(content),
-            ContentType: 'application/json',
+            Body: req.body,
+            ContentType: 'application/octet-stream',
         }));
         return res.status(200).json({message: 'Document saved successfully'});
     }catch(error){
